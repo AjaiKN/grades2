@@ -4347,7 +4347,9 @@ function _Browser_load(url)
 		}
 	}));
 }
-var author$project$Main$Percents = {$: 'Percents'};
+var author$project$Main$Percents = function (a) {
+	return {$: 'Percents', a: a};
+};
 var elm$core$Basics$identity = function (x) {
 	return x;
 };
@@ -4852,7 +4854,10 @@ var author$project$Main$plot = _Platform_outgoingPort(
 	});
 var author$project$Main$init = function (_n0) {
 	return _Utils_Tuple2(
-		{asstPoints: 100, grade: 88, percentAsstWorth: 25, tab: author$project$Main$Percents},
+		{
+			tab: author$project$Main$Percents(
+				{asstPoints: 100, grade: 88, percentAsstWorth: 25})
+		},
 		author$project$Main$plot(
 			_Utils_Tuple2(88, 25)));
 };
@@ -4861,77 +4866,124 @@ var elm$core$Platform$Sub$none = elm$core$Platform$Sub$batch(_List_Nil);
 var author$project$Main$subscriptions = function (model) {
 	return elm$core$Platform$Sub$none;
 };
-var author$project$Main$Points = {$: 'Points'};
-var author$project$Main$gradePointsDenominator = function (model) {
-	return model.asstPoints * ((100 / model.percentAsstWorth) - 1);
+var author$project$Main$getPercentsModel = function (_n0) {
+	var tab = _n0.tab;
+	if (tab.$ === 'Percents') {
+		var mod = tab.a;
+		return mod;
+	} else {
+		var pointsNumerator = tab.a.pointsNumerator;
+		var pointsDenominator = tab.a.pointsDenominator;
+		var asstPoints = tab.a.asstPoints;
+		return {asstPoints: asstPoints, grade: (pointsNumerator / pointsDenominator) * 100, percentAsstWorth: (asstPoints / (asstPoints + pointsDenominator)) * 100};
+	}
 };
-var author$project$Main$gradePointsNumerator = function (model) {
-	return (model.grade / 100) * author$project$Main$gradePointsDenominator(model);
+var author$project$Main$Points = function (a) {
+	return {$: 'Points', a: a};
 };
-var author$project$Main$setPointsDenominator = F2(
-	function (model, _new) {
-		return _Utils_update(
-			model,
-			{
-				grade: (author$project$Main$gradePointsNumerator(model) / _new) * 100,
-				percentAsstWorth: (model.asstPoints / (_new + model.asstPoints)) * 100
-			});
+var author$project$Main$getPointsModel = function (_n0) {
+	var tab = _n0.tab;
+	if (tab.$ === 'Percents') {
+		var grade = tab.a.grade;
+		var percentAsstWorth = tab.a.percentAsstWorth;
+		var asstPoints = tab.a.asstPoints;
+		var denominator = asstPoints * ((100 / percentAsstWorth) - 1);
+		var numerator = (grade / 100) * denominator;
+		return {asstPoints: asstPoints, pointsDenominator: denominator, pointsNumerator: numerator};
+	} else {
+		var mod = tab.a;
+		return mod;
+	}
+};
+var author$project$Main$updatePercents = F2(
+	function (msg, model) {
+		switch (msg.$) {
+			case 'Grade':
+				var _new = msg.a;
+				return author$project$Main$Percents(
+					_Utils_update(
+						model,
+						{grade: _new}));
+			case 'PercentAsstWorth':
+				var _new = msg.a;
+				return author$project$Main$Percents(
+					_Utils_update(
+						model,
+						{percentAsstWorth: _new}));
+			case 'AsstPoints':
+				var _new = msg.a;
+				return author$project$Main$Percents(
+					_Utils_update(
+						model,
+						{asstPoints: _new}));
+			case 'TabSwitchPoints':
+				return author$project$Main$Points(
+					author$project$Main$getPointsModel(
+						{
+							tab: author$project$Main$Percents(model)
+						}));
+			default:
+				return author$project$Main$Percents(model);
+		}
 	});
-var author$project$Main$setPointsNumerator = F2(
-	function (model, _new) {
-		return _Utils_update(
-			model,
-			{
-				grade: (_new / author$project$Main$gradePointsDenominator(model)) * 100
-			});
+var author$project$Main$updatePoints = F2(
+	function (msg, model) {
+		switch (msg.$) {
+			case 'PointsNumerator':
+				var _new = msg.a;
+				return author$project$Main$Points(
+					_Utils_update(
+						model,
+						{pointsNumerator: _new}));
+			case 'PointsDenominator':
+				var _new = msg.a;
+				return author$project$Main$Points(
+					_Utils_update(
+						model,
+						{pointsDenominator: _new}));
+			case 'AsstPoints':
+				var _new = msg.a;
+				return author$project$Main$Points(
+					_Utils_update(
+						model,
+						{asstPoints: _new}));
+			case 'TabSwitchPercents':
+				return author$project$Main$Percents(
+					author$project$Main$getPercentsModel(
+						{
+							tab: author$project$Main$Points(model)
+						}));
+			default:
+				return author$project$Main$Points(model);
+		}
 	});
 var author$project$Main$update = F2(
-	function (msg, model) {
+	function (msg, _n0) {
+		var tab = _n0.tab;
 		var newModel = function () {
-			switch (msg.$) {
-				case 'Grade':
-					var _new = msg.a;
-					return _Utils_update(
-						model,
-						{grade: _new});
-				case 'PercentAsstWorth':
-					var _new = msg.a;
-					return _Utils_update(
-						model,
-						{percentAsstWorth: _new});
-				case 'AsstPoints':
-					var _new = msg.a;
-					return _Utils_update(
-						model,
-						{asstPoints: _new});
-				case 'PointsNumerator':
-					var _new = msg.a;
-					return A2(author$project$Main$setPointsNumerator, model, _new);
-				case 'PointsDenominator':
-					var _new = msg.a;
-					return A2(author$project$Main$setPointsDenominator, model, _new);
-				case 'TabSwitchPercents':
-					return _Utils_update(
-						model,
-						{tab: author$project$Main$Percents});
-				case 'TabSwitchPoints':
-					return _Utils_update(
-						model,
-						{tab: author$project$Main$Points});
-				default:
-					return model;
+			if (tab.$ === 'Percents') {
+				var model = tab.a;
+				return {
+					tab: A2(author$project$Main$updatePercents, msg, model)
+				};
+			} else {
+				var model = tab.a;
+				return {
+					tab: A2(author$project$Main$updatePoints, msg, model)
+				};
 			}
 		}();
+		var percentsModel = author$project$Main$getPercentsModel(newModel);
 		return _Utils_Tuple2(
 			newModel,
 			author$project$Main$plot(
-				_Utils_Tuple2(newModel.grade, newModel.percentAsstWorth)));
+				_Utils_Tuple2(percentsModel.grade, percentsModel.percentAsstWorth)));
 	});
-var author$project$Main$getFun = function (model) {
-	return function (assignmentGrade) {
-		return (model.grade * (1 - (model.percentAsstWorth / 100))) + ((assignmentGrade * model.percentAsstWorth) / 100);
-	};
-};
+var author$project$Main$finalGrade = F2(
+	function (model, assignmentGrade) {
+		var mod = author$project$Main$getPercentsModel(model);
+		return (mod.grade * (1 - (mod.percentAsstWorth / 100))) + ((assignmentGrade * mod.percentAsstWorth) / 100);
+	});
 var elm$core$List$foldrHelper = F4(
 	function (fn, acc, ctr, ls) {
 		if (!ls.b) {
@@ -5459,7 +5511,7 @@ var author$project$Main$makeTable = F2(
 		return A2(author$project$Main$makeTableFromRows, headers, transposed);
 	});
 var author$project$Main$table1 = function (model) {
-	var fun = author$project$Main$getFun(model);
+	var fun = author$project$Main$finalGrade(model);
 	var asstGrades = A2(
 		elm$core$List$map,
 		function (n) {
@@ -5469,7 +5521,7 @@ var author$project$Main$table1 = function (model) {
 	var asstPoints = A2(
 		elm$core$List$map,
 		function (n) {
-			return (n / 100) * model.asstPoints;
+			return (n / 100) * author$project$Main$getPercentsModel(model).asstPoints;
 		},
 		asstGrades);
 	var totalGrades = A2(elm$core$List$map, fun, asstGrades);
@@ -5480,11 +5532,11 @@ var author$project$Main$table1 = function (model) {
 		_List_fromArray(
 			[asstPoints, asstGrades, totalGrades]));
 };
-var author$project$Main$getInverseFun = function (model) {
-	return function (gradeNeeded) {
-		return (gradeNeeded - (model.grade * (1 - (model.percentAsstWorth / 100)))) / (model.percentAsstWorth / 100);
-	};
-};
+var author$project$Main$assignmentGradeNeeded = F2(
+	function (model, finalGradeNeeded) {
+		var mod = author$project$Main$getPercentsModel(model);
+		return (finalGradeNeeded - (mod.grade * (1 - (mod.percentAsstWorth / 100)))) / (mod.percentAsstWorth / 100);
+	});
 var elm$core$List$filter = F2(
 	function (isGood, list) {
 		return A3(
@@ -5524,7 +5576,7 @@ var author$project$Main$table2 = function (model) {
 			return n * 10;
 		},
 		A2(elm$core$List$range, 0, 11));
-	var fun = author$project$Main$getInverseFun(model);
+	var fun = author$project$Main$assignmentGradeNeeded(model);
 	var asstGrades = A2(elm$core$List$map, fun, totalGrades);
 	var _n0 = elm$core$List$unzip(
 		A2(
@@ -5542,7 +5594,7 @@ var author$project$Main$table2 = function (model) {
 			A2(
 			elm$core$List$map,
 			function (n) {
-				return (n / 100) * model.asstPoints;
+				return (n / 100) * author$project$Main$getPercentsModel(model).asstPoints;
 			},
 			finalAsstGrades),
 			finalAsstGrades,
@@ -5583,9 +5635,9 @@ var elm$html$Html$Events$onClick = function (msg) {
 		'click',
 		elm$json$Json$Decode$succeed(msg));
 };
-var author$project$Main$viewTabLink = F4(
-	function (currentTab, thisTab, click, label) {
-		var activeClass = _Utils_eq(currentTab, thisTab) ? ' active' : '';
+var author$project$Main$viewTabLink = F3(
+	function (isCurrentTab, click, label) {
+		var activeClass = isCurrentTab ? ' active' : '';
 		return A2(
 			elm$html$Html$button,
 			_List_fromArray(
@@ -5600,6 +5652,15 @@ var author$project$Main$viewTabLink = F4(
 	});
 var elm$html$Html$div = _VirtualDom_node('div');
 var author$project$Main$viewHeaders = function (tab) {
+	var _n0 = function () {
+		if (tab.$ === 'Percents') {
+			return _Utils_Tuple2(true, false);
+		} else {
+			return _Utils_Tuple2(false, true);
+		}
+	}();
+	var isPercents = _n0.a;
+	var isPoints = _n0.b;
 	return A2(
 		elm$html$Html$div,
 		_List_fromArray(
@@ -5608,8 +5669,8 @@ var author$project$Main$viewHeaders = function (tab) {
 			]),
 		_List_fromArray(
 			[
-				A4(author$project$Main$viewTabLink, tab, author$project$Main$Percents, author$project$Main$TabSwitchPercents, 'Percents'),
-				A4(author$project$Main$viewTabLink, tab, author$project$Main$Points, author$project$Main$TabSwitchPoints, 'Points')
+				A3(author$project$Main$viewTabLink, isPercents, author$project$Main$TabSwitchPercents, 'Percents'),
+				A3(author$project$Main$viewTabLink, isPoints, author$project$Main$TabSwitchPoints, 'Points')
 			]));
 };
 var author$project$Main$AsstPoints = function (a) {
@@ -5717,30 +5778,27 @@ var author$project$Main$viewTabContent = function (model) {
 		function () {
 			var _n0 = model.tab;
 			if (_n0.$ === 'Percents') {
+				var percentsModel = _n0.a;
 				return _List_fromArray(
 					[
-						A3(author$project$Main$numInput, author$project$Main$Grade, model.grade, 'Current grade (%): '),
+						A3(author$project$Main$numInput, author$project$Main$Grade, percentsModel.grade, 'Current grade (%): '),
 						A2(elm$html$Html$br, _List_Nil, _List_Nil),
-						A3(author$project$Main$numInput, author$project$Main$PercentAsstWorth, model.percentAsstWorth, 'Percent of grade assignment is worth (%): '),
+						A3(author$project$Main$numInput, author$project$Main$PercentAsstWorth, percentsModel.percentAsstWorth, 'Percent of grade assignment is worth (%): '),
 						A2(elm$html$Html$br, _List_Nil, _List_Nil),
-						A3(author$project$Main$numInput, author$project$Main$AsstPoints, model.asstPoints, 'Assignment total points (optional): '),
+						A3(author$project$Main$numInput, author$project$Main$AsstPoints, percentsModel.asstPoints, 'Assignment total points (optional): '),
 						A2(elm$html$Html$br, _List_Nil, _List_Nil)
 					]);
 			} else {
+				var pointsModel = _n0.a;
 				return _List_fromArray(
 					[
-						A3(
-						author$project$Main$numInput,
-						author$project$Main$PointsNumerator,
-						author$project$Main$gradePointsNumerator(model),
-						'Current grade (points): '),
-						A3(
-						author$project$Main$numInput,
-						author$project$Main$PointsDenominator,
-						author$project$Main$gradePointsDenominator(model),
-						' / '),
+						A3(author$project$Main$numInput, author$project$Main$PointsNumerator, pointsModel.pointsNumerator, 'Current grade (points): '),
+						A3(author$project$Main$numInput, author$project$Main$PointsDenominator, pointsModel.pointsDenominator, ' / '),
+						elm$html$Html$text(
+						' = ' + (elm$core$String$fromFloat(
+							author$project$Main$getPercentsModel(model).grade) + '%')),
 						A2(elm$html$Html$br, _List_Nil, _List_Nil),
-						A3(author$project$Main$numInput, author$project$Main$AsstPoints, model.asstPoints, 'Assignment total points: ')
+						A3(author$project$Main$numInput, author$project$Main$AsstPoints, pointsModel.asstPoints, 'Assignment total points: ')
 					]);
 			}
 		}());

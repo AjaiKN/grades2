@@ -9,7 +9,9 @@ import Round
 
 
 port plot :
-    ( Float, Float ) --grade, percent assignment is worth
+    ( Float -- grade %
+    , Float -- % assignment is worth
+    )
     -> Cmd msg
 
 
@@ -31,21 +33,32 @@ main =
 
 
 type alias Model =
-    { grade : Float
-    , percentAsstWorth : Float
-    , asstPoints : Float
-    , tab : Tab
+    { tab : Tab
     }
 
 
 type Tab
-    = Percents
-    | Points
+    = Percents PercentsModel
+    | Points PointsModel
+
+
+type alias PercentsModel =
+    { grade : Float
+    , percentAsstWorth : Float
+    , asstPoints : Float
+    }
+
+
+type alias PointsModel =
+    { pointsNumerator : Float
+    , pointsDenominator : Float
+    , asstPoints : Float
+    }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { grade = 88, percentAsstWorth = 25, asstPoints = 100, tab = Percents }, plot ( 88, 25 ) )
+    ( { tab = Percents { grade = 88, percentAsstWorth = 25, asstPoints = 100 } }, plot ( 88, 25 ) )
 
 
 
@@ -80,37 +93,65 @@ stringTaker f =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update msg { tab } =
     let
+        newModel : Model
         newModel =
-            case msg of
-                Grade new ->
-                    { model | grade = new }
+            case tab of
+                Percents model ->
+                    { tab = updatePercents msg model }
 
-                PercentAsstWorth new ->
-                    { model | percentAsstWorth = new }
+                Points model ->
+                    { tab = updatePoints msg model }
 
-                AsstPoints new ->
-                    { model | asstPoints = new }
-
-                PointsNumerator new ->
-                    setPointsNumerator model new
-
-                PointsDenominator new ->
-                    setPointsDenominator model new
-
-                TabSwitchPercents ->
-                    { model | tab = Percents }
-
-                TabSwitchPoints ->
-                    { model | tab = Points }
-
-                DoNothing ->
-                    model
+        percentsModel : PercentsModel
+        percentsModel =
+            getPercentsModel newModel
     in
     ( newModel
-    , plot ( newModel.grade, newModel.percentAsstWorth )
+    , plot ( percentsModel.grade, percentsModel.percentAsstWorth )
     )
+
+
+updatePercents :
+    Msg
+    -> PercentsModel
+    -> Tab
+updatePercents msg model =
+    case msg of
+        Grade new ->
+            Percents { model | grade = new }
+
+        PercentAsstWorth new ->
+            Percents { model | percentAsstWorth = new }
+
+        AsstPoints new ->
+            Percents { model | asstPoints = new }
+
+        TabSwitchPoints ->
+            Points (getPointsModel { tab = Percents model })
+
+        _ ->
+            Percents model
+
+
+updatePoints : Msg -> PointsModel -> Tab
+updatePoints msg model =
+    case msg of
+        PointsNumerator new ->
+            Points { model | pointsNumerator = new }
+
+        PointsDenominator new ->
+            Points { model | pointsDenominator = new }
+
+        AsstPoints new ->
+            Points { model | asstPoints = new }
+
+        TabSwitchPercents ->
+            Percents (getPercentsModel { tab = Points model })
+
+        _ ->
+            Points model
 
 
 
@@ -129,17 +170,26 @@ view model =
 
 viewHeaders : Tab -> Html Msg
 viewHeaders tab =
+    let
+        ( isPercents, isPoints ) =
+            case tab of
+                Percents _ ->
+                    ( True, False )
+
+                Points _ ->
+                    ( False, True )
+    in
     div [ class "tab" ]
-        [ viewTabLink tab Percents TabSwitchPercents "Percents"
-        , viewTabLink tab Points TabSwitchPoints "Points"
+        [ viewTabLink isPercents TabSwitchPercents "Percents"
+        , viewTabLink isPoints TabSwitchPoints "Points"
         ]
 
 
-viewTabLink : Tab -> Tab -> Msg -> String -> Html Msg
-viewTabLink currentTab thisTab click label =
+viewTabLink : Bool -> Msg -> String -> Html Msg
+viewTabLink isCurrentTab click label =
     let
         activeClass =
-            if currentTab == thisTab then
+            if isCurrentTab then
                 " active"
 
             else
@@ -157,20 +207,21 @@ viewTabContent model =
     div
         [ class "tabcontent" ]
         (case model.tab of
-            Percents ->
-                [ numInput Grade model.grade "Current grade (%): "
+            Percents percentsModel ->
+                [ numInput Grade percentsModel.grade "Current grade (%): "
                 , br [] []
-                , numInput PercentAsstWorth model.percentAsstWorth "Percent of grade assignment is worth (%): "
+                , numInput PercentAsstWorth percentsModel.percentAsstWorth "Percent of grade assignment is worth (%): "
                 , br [] []
-                , numInput AsstPoints model.asstPoints "Assignment total points (optional): "
+                , numInput AsstPoints percentsModel.asstPoints "Assignment total points (optional): "
                 , br [] []
                 ]
 
-            Points ->
-                [ numInput PointsNumerator (gradePointsNumerator model) "Current grade (points): "
-                , numInput PointsDenominator (gradePointsDenominator model) " / "
+            Points pointsModel ->
+                [ numInput PointsNumerator pointsModel.pointsNumerator "Current grade (points): "
+                , numInput PointsDenominator pointsModel.pointsDenominator " / "
+                , text (" = " ++ String.fromFloat (getPercentsModel model).grade ++ "%")
                 , br [] []
-                , numInput AsstPoints model.asstPoints "Assignment total points: "
+                , numInput AsstPoints pointsModel.asstPoints "Assignment total points: "
                 ]
         )
 
@@ -195,29 +246,42 @@ numInput changer val label =
         ]
 
 
-getFun : Model -> (Float -> Float)
-getFun model =
-    \assignmentGrade ->
-        (model.grade * (1 - model.percentAsstWorth / 100)) + assignmentGrade * model.percentAsstWorth / 100
+{-| Given a model and an assignment grade, returns the new final grade
+-}
+finalGrade : Model -> (Float -> Float)
+finalGrade model assignmentGrade =
+    let
+        mod : PercentsModel
+        mod =
+            getPercentsModel model
+    in
+    (mod.grade * (1 - mod.percentAsstWorth / 100)) + assignmentGrade * mod.percentAsstWorth / 100
 
 
-getInverseFun : Model -> (Float -> Float)
-getInverseFun model =
-    \gradeNeeded ->
-        (gradeNeeded - model.grade * (1 - model.percentAsstWorth / 100)) / (model.percentAsstWorth / 100)
+{-| Given a model and the final grade needed, returns the grade needed on the assignment.
+(assignmentGradeNeeded model) is the inverse function of (finalGrade model).
+-}
+assignmentGradeNeeded : Model -> (Float -> Float)
+assignmentGradeNeeded model finalGradeNeeded =
+    let
+        mod : PercentsModel
+        mod =
+            getPercentsModel model
+    in
+    (finalGradeNeeded - mod.grade * (1 - mod.percentAsstWorth / 100)) / (mod.percentAsstWorth / 100)
 
 
 table1 : Model -> Html Msg
 table1 model =
     let
         fun =
-            getFun model
+            finalGrade model
 
         asstGrades =
             List.map (\n -> toFloat (n * 10)) (List.range 0 11)
 
         asstPoints =
-            List.map (\n -> n / 100 * model.asstPoints) asstGrades
+            List.map (\n -> n / 100 * (getPercentsModel model).asstPoints) asstGrades
 
         totalGrades =
             List.map fun asstGrades
@@ -231,7 +295,7 @@ table2 : Model -> Html Msg
 table2 model =
     let
         fun =
-            getInverseFun model
+            assignmentGradeNeeded model
 
         totalGrades =
             List.map (\n -> toFloat (n * 10)) (List.range 0 11)
@@ -246,7 +310,7 @@ table2 model =
                 |> List.unzip
 
         cols =
-            [ List.map (\n -> n / 100 * model.asstPoints) finalAsstGrades
+            [ List.map (\n -> n / 100 * (getPercentsModel model).asstPoints) finalAsstGrades
             , finalAsstGrades
             , finalTotalGrades
             ]
@@ -257,29 +321,40 @@ table2 model =
 
 
 
---CONVERTING TO POINTS SYSTEM
+--CONVERTING BETWEEN POINTS AND PERCENTS SYSTEMS
 
 
-gradePointsNumerator model =
-    model.grade
-        / 100
-        * gradePointsDenominator model
+getPointsModel : Model -> PointsModel
+getPointsModel { tab } =
+    case tab of
+        Percents { grade, percentAsstWorth, asstPoints } ->
+            let
+                denominator =
+                    asstPoints * (100 / percentAsstWorth - 1)
+
+                numerator =
+                    grade / 100 * denominator
+            in
+            { pointsNumerator = numerator
+            , pointsDenominator = denominator
+            , asstPoints = asstPoints
+            }
+
+        Points mod ->
+            mod
 
 
-setPointsNumerator model new =
-    { model | grade = new / gradePointsDenominator model * 100 }
+getPercentsModel : Model -> PercentsModel
+getPercentsModel { tab } =
+    case tab of
+        Percents mod ->
+            mod
 
-
-gradePointsDenominator model =
-    model.asstPoints
-        * (100 / model.percentAsstWorth - 1)
-
-
-setPointsDenominator model new =
-    { model
-        | percentAsstWorth = model.asstPoints / (new + model.asstPoints) * 100
-        , grade = gradePointsNumerator model / new * 100
-    }
+        Points { pointsNumerator, pointsDenominator, asstPoints } ->
+            { grade = pointsNumerator / pointsDenominator * 100
+            , percentAsstWorth = asstPoints / (asstPoints + pointsDenominator) * 100
+            , asstPoints = asstPoints
+            }
 
 
 
