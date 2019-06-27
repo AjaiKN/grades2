@@ -5119,69 +5119,6 @@ var author$project$Main$makeTableFromRows = F2(
 					makeRow(elm$html$Html$td),
 					l)));
 	});
-var elm$core$List$maybeCons = F3(
-	function (f, mx, xs) {
-		var _n0 = f(mx);
-		if (_n0.$ === 'Just') {
-			var x = _n0.a;
-			return A2(elm$core$List$cons, x, xs);
-		} else {
-			return xs;
-		}
-	});
-var elm$core$List$filterMap = F2(
-	function (f, xs) {
-		return A3(
-			elm$core$List$foldr,
-			elm$core$List$maybeCons(f),
-			_List_Nil,
-			xs);
-	});
-var elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return elm$core$Maybe$Just(x);
-	} else {
-		return elm$core$Maybe$Nothing;
-	}
-};
-var elm$core$List$tail = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return elm$core$Maybe$Just(xs);
-	} else {
-		return elm$core$Maybe$Nothing;
-	}
-};
-var author$project$Main$transpose = function (ll) {
-	transpose:
-	while (true) {
-		if (!ll.b) {
-			return _List_Nil;
-		} else {
-			if (!ll.a.b) {
-				var xss = ll.b;
-				var $temp$ll = xss;
-				ll = $temp$ll;
-				continue transpose;
-			} else {
-				var _n1 = ll.a;
-				var x = _n1.a;
-				var xs = _n1.b;
-				var xss = ll.b;
-				var tails = A2(elm$core$List$filterMap, elm$core$List$tail, xss);
-				var heads = A2(elm$core$List$filterMap, elm$core$List$head, xss);
-				return A2(
-					elm$core$List$cons,
-					A2(elm$core$List$cons, x, heads),
-					author$project$Main$transpose(
-						A2(elm$core$List$cons, xs, tails)));
-			}
-		}
-	}
-};
 var elm$core$Basics$composeR = F3(
 	function (f, g, x) {
 		return g(
@@ -5493,18 +5430,79 @@ var myrho$elm_round$Round$round = myrho$elm_round$Round$roundFun(
 			}
 		}));
 var myrho$elm_round$Round$roundNum = myrho$elm_round$Round$funNum(myrho$elm_round$Round$round);
+var author$project$Main$roundToString = A2(
+	elm$core$Basics$composeR,
+	myrho$elm_round$Round$roundNum(3),
+	elm$core$String$fromFloat);
+var elm$core$List$maybeCons = F3(
+	function (f, mx, xs) {
+		var _n0 = f(mx);
+		if (_n0.$ === 'Just') {
+			var x = _n0.a;
+			return A2(elm$core$List$cons, x, xs);
+		} else {
+			return xs;
+		}
+	});
+var elm$core$List$filterMap = F2(
+	function (f, xs) {
+		return A3(
+			elm$core$List$foldr,
+			elm$core$List$maybeCons(f),
+			_List_Nil,
+			xs);
+	});
+var elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return elm$core$Maybe$Just(x);
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
+};
+var elm$core$List$tail = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return elm$core$Maybe$Just(xs);
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
+};
+var author$project$Main$transpose = function (ll) {
+	transpose:
+	while (true) {
+		if (!ll.b) {
+			return _List_Nil;
+		} else {
+			if (!ll.a.b) {
+				var xss = ll.b;
+				var $temp$ll = xss;
+				ll = $temp$ll;
+				continue transpose;
+			} else {
+				var _n1 = ll.a;
+				var x = _n1.a;
+				var xs = _n1.b;
+				var xss = ll.b;
+				var tails = A2(elm$core$List$filterMap, elm$core$List$tail, xss);
+				var heads = A2(elm$core$List$filterMap, elm$core$List$head, xss);
+				return A2(
+					elm$core$List$cons,
+					A2(elm$core$List$cons, x, heads),
+					author$project$Main$transpose(
+						A2(elm$core$List$cons, xs, tails)));
+			}
+		}
+	}
+};
 var author$project$Main$makeTable = F2(
 	function (headers, cols) {
 		var convertedCols = A2(
 			elm$core$List$map,
 			function (l) {
-				return A2(
-					elm$core$List$map,
-					A2(
-						elm$core$Basics$composeR,
-						myrho$elm_round$Round$roundNum(3),
-						elm$core$String$fromFloat),
-					l);
+				return A2(elm$core$List$map, author$project$Main$roundToString, l);
 			},
 			cols);
 		var transposed = author$project$Main$transpose(convertedCols);
@@ -5761,7 +5759,7 @@ var author$project$Main$numInput = F3(
 							author$project$Main$stringTaker(changer)),
 							elm$html$Html$Attributes$type_('number'),
 							elm$html$Html$Attributes$value(
-							(elm$core$Basics$abs(val) < 1.0e-3) ? '' : A2(myrho$elm_round$Round$round, 3, val)),
+							(elm$core$Basics$abs(val) < 1.0e-3) ? '' : author$project$Main$roundToString(val)),
 							elm$html$Html$Attributes$step('any')
 						]),
 					_List_Nil)

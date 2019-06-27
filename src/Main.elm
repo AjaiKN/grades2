@@ -239,7 +239,7 @@ numInput changer val label =
                     ""
 
                 else
-                    Round.round 3 val
+                    roundToString val
             , step "any"
             ]
             []
@@ -320,6 +320,11 @@ table2 model =
         cols
 
 
+roundToString : Float -> String
+roundToString =
+    Round.roundNum 3 >> String.fromFloat
+
+
 
 --CONVERTING BETWEEN POINTS AND PERCENTS SYSTEMS
 
@@ -365,7 +370,7 @@ makeTable : List String -> List (List Float) -> Html Msg
 makeTable headers cols =
     let
         convertedCols =
-            List.map (\l -> List.map (Round.roundNum 3 >> String.fromFloat) l) cols
+            List.map (\l -> List.map roundToString l) cols
 
         transposed =
             transpose convertedCols
