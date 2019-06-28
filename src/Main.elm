@@ -190,26 +190,6 @@ type Msg
     | DoNothing
 
 
-
---TODO - not used
-
-
-stringTaker : (Float -> Msg) -> (String -> Msg)
-stringTaker f =
-    \str ->
-        case str of
-            "" ->
-                f 0
-
-            _ ->
-                case String.toFloat str of
-                    Nothing ->
-                        DoNothing
-
-                    Just val ->
-                        f val
-
-
 update : Msg -> Model String -> ( Model String, Cmd Msg )
 update msg model =
     let
