@@ -1,4 +1,4 @@
-port module Main exposing (Model, Msg(..), init, main, update, view)
+port module Main exposing (Model, Msg(..), PercentsModel, PointsModel, Tab(..), assignmentGradeNeeded, finalGrade, getPercentsModel, getPointsModel, init, main, update, view)
 
 import Browser
 import Html exposing (Attribute, Html, a, br, button, div, input, table, td, text, th, tr)
