@@ -1,10 +1,10 @@
 port module Main exposing (Model, Msg(..), init, main, update, view)
 
 import Browser
-import Html exposing (Attribute, Html, br, button, div, input, table, td, text, th, tr)
-import Html.Attributes exposing (attribute, class, step, type_, value)
+import Html exposing (Attribute, Html, a, br, button, div, input, table, td, text, th, tr)
+import Html.Attributes exposing (attribute, class, href, step, type_, value)
 import Html.Events exposing (onClick, onInput)
-import Input.Number
+import Regex
 import Round
 
 
@@ -34,12 +34,9 @@ main =
 
 type alias Model t =
     --t is either String or Float
-    { tab : Tab t
+    { baseUrl : String
+    , tab : Tab t
     }
-
-
-makeModel tab =
-    { tab = tab }
 
 
 type Tab t
@@ -61,37 +58,107 @@ type alias PointsModel t =
     }
 
 
-init : () -> ( Model String, Cmd Msg )
-init _ =
-    ( convertModel floatToStr { tab = Percents { grade = 88, percentAsstWorth = 25, asstPoints = 100 } }, plot ( 88, 25 ) )
+init : ( String, String ) -> ( Model String, Cmd Msg )
+init ( url, urlWithoutQuery ) =
+    let
+        defaultModel =
+            mapModel
+                floatToStr
+                { tab = Percents { grade = 88, percentAsstWorth = 25, asstPoints = 100 }
+                , baseUrl = urlWithoutQuery
+                }
+
+        mod =
+            { defaultModel
+                | tab = Maybe.withDefault defaultModel.tab (getModelFromUrl url)
+            }
+
+        percentsModel =
+            mod |> mapModel strToFloat |> getPercentsModel
+    in
+    ( mod
+    , plot ( percentsModel.grade, percentsModel.percentAsstWorth )
+    )
+
+
+getModelFromUrl : String -> Maybe (Tab String)
+getModelFromUrl str =
+    case getSubmatches ".*\\?type=percent&grade=(.*)&percentAsstWorth=(.*)&asstPoints=(.*)" str of
+        Just [ a, b, c ] ->
+            PercentsModel a b c
+                |> Percents
+                |> Just
+
+        _ ->
+            case getSubmatches ".*\\?type=point&numerator=(.*)&denominator=(.*)&asstPoints=(.*)" str of
+                Just [ a, b, c ] ->
+                    PointsModel a b c
+                        |> Points
+                        |> Just
+
+                _ ->
+                    Nothing
+
+
+getSubmatches : String -> String -> Maybe (List String)
+getSubmatches regexStr s =
+    let
+        r : Regex.Regex
+        r =
+            Maybe.withDefault Regex.never <| Regex.fromString regexStr
+    in
+    Maybe.map (.submatches >> List.map (Maybe.withDefault "")) (List.head (Regex.find r s))
+
+
+getPageUrl : Model String -> String
+getPageUrl { baseUrl, tab } =
+    baseUrl
+        ++ (case tab of
+                Percents { grade, percentAsstWorth, asstPoints } ->
+                    "?type=percent&grade=" ++ grade ++ "&percentAsstWorth=" ++ percentAsstWorth ++ "&asstPoints=" ++ asstPoints
+
+                Points { pointsNumerator, pointsDenominator, asstPoints } ->
+                    "?type=point&numerator=" ++ pointsNumerator ++ "&denominator=" ++ pointsDenominator ++ "&asstPoints=" ++ asstPoints
+           )
+
+
+getPageLink : Model String -> Html msg
+getPageLink model =
+    let
+        url =
+            getPageUrl model
+    in
+    a [ href url ] [ text url ]
 
 
 
---CONVERSION BETWEEN FLOAT AND STRING MODELS
+--CONVERSION BETWEEN MODEL TYPES (Model Float and Model String)
 
 
-convertModel : (a -> b) -> Model a -> Model b
-convertModel f { tab } =
+mapModel : (a -> b) -> Model a -> Model b
+mapModel f { baseUrl, tab } =
     case tab of
         Percents mod ->
-            { tab = Percents (convertPercentsModel f mod)
+            { baseUrl = baseUrl
+            , tab = Percents (mapPercentsModel f mod)
             }
 
         Points mod ->
-            { tab = Points (convertPointsModel f mod)
+            { baseUrl = baseUrl
+            , tab = Points (mapPointsModel f mod)
             }
 
 
-convertPercentsModel : (a -> b) -> PercentsModel a -> PercentsModel b
-convertPercentsModel f { grade, percentAsstWorth, asstPoints } =
+mapPercentsModel : (a -> b) -> PercentsModel a -> PercentsModel b
+mapPercentsModel f { grade, percentAsstWorth, asstPoints } =
     { grade = f grade
     , percentAsstWorth = f percentAsstWorth
     , asstPoints = f asstPoints
     }
 
 
-convertPointsModel : (a -> b) -> PointsModel a -> PointsModel b
-convertPointsModel f { pointsNumerator, pointsDenominator, asstPoints } =
+mapPointsModel : (a -> b) -> PointsModel a -> PointsModel b
+mapPointsModel f { pointsNumerator, pointsDenominator, asstPoints } =
     { pointsNumerator = f pointsNumerator
     , pointsDenominator = f pointsDenominator
     , asstPoints = f asstPoints
@@ -144,20 +211,20 @@ stringTaker f =
 
 
 update : Msg -> Model String -> ( Model String, Cmd Msg )
-update msg { tab } =
+update msg model =
     let
         newModel : Model String
         newModel =
-            case tab of
-                Percents model ->
-                    { tab = updatePercents msg model }
+            case model.tab of
+                Percents mod ->
+                    { model | tab = updatePercents msg mod }
 
-                Points model ->
-                    { tab = updatePoints msg model }
+                Points mod ->
+                    { model | tab = updatePoints msg mod }
 
         percentsModel : PercentsModel Float
         percentsModel =
-            newModel |> convertModel strToFloat |> getPercentsModel
+            newModel |> mapModel strToFloat |> getPercentsModel
     in
     ( newModel
     , plot ( percentsModel.grade, percentsModel.percentAsstWorth )
@@ -180,13 +247,13 @@ updatePercents msg model =
             Percents { model | asstPoints = new }
 
         TabSwitchPoints ->
-            convertPercentsModel strToFloat model
+            mapPercentsModel strToFloat model
                 |> Percents
-                |> makeModel
+                |> Model ""
                 |> getPointsModel
                 |> Points
-                |> makeModel
-                |> convertModel floatToStr
+                |> Model ""
+                |> mapModel floatToStr
                 |> .tab
 
         _ ->
@@ -206,13 +273,13 @@ updatePoints msg model =
             Points { model | asstPoints = new }
 
         TabSwitchPercents ->
-            convertPointsModel strToFloat model
+            mapPointsModel strToFloat model
                 |> Points
-                |> makeModel
+                |> Model ""
                 |> getPercentsModel
                 |> Percents
-                |> makeModel
-                |> convertModel floatToStr
+                |> Model ""
+                |> mapModel floatToStr
                 |> .tab
 
         _ ->
@@ -226,10 +293,12 @@ updatePoints msg model =
 view : Model String -> Html Msg
 view model =
     div []
-        [ viewHeaders model.tab
+        [ text "Link to this calculation: "
+        , getPageLink model
+        , viewHeaders model.tab
         , viewTabContent model
-        , table1 (convertModel strToFloat model)
-        , table2 (convertModel strToFloat model)
+        , table1 (mapModel strToFloat model)
+        , table2 (mapModel strToFloat model)
         ]
 
 
@@ -284,7 +353,7 @@ viewTabContent model =
             Points pointsModel ->
                 [ numInput PointsNumerator pointsModel.pointsNumerator "Current grade (points): "
                 , numInput PointsDenominator pointsModel.pointsDenominator " / "
-                , text (" = " ++ floatToStr (getPercentsModel (convertModel strToFloat model)).grade ++ "%")
+                , text (" = " ++ floatToStr (getPercentsModel (mapModel strToFloat model)).grade ++ "%")
                 , br [] []
                 , numInput AsstPoints pointsModel.asstPoints "Assignment total points: "
                 ]
