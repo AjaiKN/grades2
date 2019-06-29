@@ -282,27 +282,32 @@ updatePoints msg model =
 view : Model String -> Html Msg
 view model =
     div []
-        [ --text "Link to this calculation: "
-          -- , getPageLink model
-          -- , br [] []
-          button
-            [ type_ "button"
-            , class "btn btn-primary"
-            , id "copyButton"
-            , onClick CopyToClipboard
-            , attribute "data-toggle" "tooltip"
-            , attribute "data-placement" "bottom"
-            , attribute "title" "Copy"
-            ]
-            [ text "Copy link to this calculation" ]
-        , div
-            [ class "tabcontent card container-fluid mb-3" ]
-            [ divClass "card-header" [ viewHeaders model.tab ]
-            , viewTabContent model
-            ]
-        , table1 (mapModel strToFloat model)
-        , table2 (mapModel strToFloat model)
+        [ divClass1 "text-center mt-2 mb-2" <|
+            button
+                [ type_ "button"
+                , class "btn btn-primary"
+                , id "copyButton"
+                , onClick CopyToClipboard
+                , attribute "data-toggle" "tooltip"
+                , attribute "data-placement" "bottom"
+                , attribute "title" "Copy"
+                ]
+                [ text "Copy link to this calculation" ]
+        , centeredRow <|
+            divClass "tabcontent card container-fluid mb-3"
+                [ divClass "card-header" [ viewHeaders model.tab ]
+                , viewTabContent model
+                ]
+        , centeredRow <|
+            table1 (mapModel strToFloat model)
+        , centeredRow <|
+            table2 (mapModel strToFloat model)
         ]
+
+
+centeredRow =
+    divClass1 "row justify-content-center"
+        << divClass1 "col-lg-6"
 
 
 viewHeaders : Tab String -> Html Msg
@@ -408,6 +413,10 @@ numInput isPercent changer val lab =
 
 divClass c =
     div [ class c ]
+
+
+divClass1 c thing =
+    div [ class c ] [ thing ]
 
 
 {-| Given a model and an assignment grade, returns the new final grade
