@@ -385,7 +385,7 @@ viewTabContent model =
                             []
                         , divClass1 "input-group-append" <|
                             span [ class "input-group-text" ]
-                                [ text <| "= " ++ String.fromFloat (getPercentsModel (mapModel strToFloat model)).grade ++ "%" ]
+                                [ text <| "= " ++ floatToStr (getPercentsModel (mapModel strToFloat model)).grade ++ "%" ]
                         ]
                     ]
                 , numInput False AsstPoints pointsModel.asstPoints "Assignment total points: "
