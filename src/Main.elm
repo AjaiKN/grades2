@@ -1,8 +1,8 @@
 port module Main exposing (Model, Msg(..), PercentsModel, PointsModel, Tab(..), assignmentGradeNeeded, finalGrade, getPercentsModel, getPointsModel, init, main, update, view)
 
 import Browser
-import Html exposing (Attribute, Html, a, br, button, div, input, table, td, text, th, tr)
-import Html.Attributes exposing (attribute, class, href, step, type_, value)
+import Html exposing (Attribute, Html, a, br, button, div, input, label, nav, span, table, tbody, td, text, th, thead, tr)
+import Html.Attributes exposing (attribute, class, href, id, scope, step, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Regex
 import Round
@@ -13,6 +13,9 @@ port plot :
     , Float -- % assignment is worth
     )
     -> Cmd msg
+
+
+port copyToClipboard : String -> Cmd msg
 
 
 
@@ -128,7 +131,7 @@ getPageLink model =
         url =
             getPageUrl model
     in
-    a [ href url ] [ text url ]
+    a [ href url, id "page-link" ] [ text url ]
 
 
 
@@ -180,7 +183,8 @@ floatToStr =
 
 
 type Msg
-    = Grade String
+    = CopyToClipboard
+    | Grade String
     | PercentAsstWorth String
     | AsstPoints String
     | PointsNumerator String
@@ -192,23 +196,28 @@ type Msg
 
 update : Msg -> Model String -> ( Model String, Cmd Msg )
 update msg model =
-    let
-        newModel : Model String
-        newModel =
-            case model.tab of
-                Percents mod ->
-                    { model | tab = updatePercents msg mod }
+    case msg of
+        CopyToClipboard ->
+            ( model, copyToClipboard (getPageUrl model) )
 
-                Points mod ->
-                    { model | tab = updatePoints msg mod }
+        _ ->
+            let
+                newModel : Model String
+                newModel =
+                    case model.tab of
+                        Percents mod ->
+                            { model | tab = updatePercents msg mod }
 
-        percentsModel : PercentsModel Float
-        percentsModel =
-            newModel |> mapModel strToFloat |> getPercentsModel
-    in
-    ( newModel
-    , plot ( percentsModel.grade, percentsModel.percentAsstWorth )
-    )
+                        Points mod ->
+                            { model | tab = updatePoints msg mod }
+
+                percentsModel : PercentsModel Float
+                percentsModel =
+                    newModel |> mapModel strToFloat |> getPercentsModel
+            in
+            ( newModel
+            , plot ( percentsModel.grade, percentsModel.percentAsstWorth )
+            )
 
 
 updatePercents :
@@ -273,10 +282,24 @@ updatePoints msg model =
 view : Model String -> Html Msg
 view model =
     div []
-        [ text "Link to this calculation: "
-        , getPageLink model
-        , viewHeaders model.tab
-        , viewTabContent model
+        [ --text "Link to this calculation: "
+          -- , getPageLink model
+          -- , br [] []
+          button
+            [ type_ "button"
+            , class "btn btn-primary"
+            , id "copyButton"
+            , onClick CopyToClipboard
+            , attribute "data-toggle" "tooltip"
+            , attribute "data-placement" "bottom"
+            , attribute "title" "Copy"
+            ]
+            [ text "Copy link to this calculation" ]
+        , div
+            [ class "tabcontent card container-fluid mb-3" ]
+            [ divClass "card-header" [ viewHeaders model.tab ]
+            , viewTabContent model
+            ]
         , table1 (mapModel strToFloat model)
         , table2 (mapModel strToFloat model)
         ]
@@ -293,7 +316,7 @@ viewHeaders tab =
                 Points _ ->
                     ( False, True )
     in
-    div [ class "tab" ]
+    nav [ class "nav nav-tabs card-header-tabs" ]
         [ viewTabLink isPercents TabSwitchPercents "Percents"
         , viewTabLink isPoints TabSwitchPoints "Points"
         ]
@@ -309,50 +332,82 @@ viewTabLink isCurrentTab click label =
             else
                 ""
     in
-    button
-        [ class ("tablinks" ++ activeClass)
+    a
+        [ class ("nav-link" ++ activeClass)
         , onClick click
+        , href "#"
         ]
         [ text label ]
 
 
 viewTabContent : Model String -> Html Msg
 viewTabContent model =
-    div
-        [ class "tabcontent" ]
+    divClass "card-body"
         (case model.tab of
             Percents percentsModel ->
-                [ numInput Grade percentsModel.grade "Current grade (%): "
-                , br [] []
-                , numInput PercentAsstWorth percentsModel.percentAsstWorth "Percent of grade assignment is worth (%): "
-                , br [] []
-                , numInput AsstPoints percentsModel.asstPoints "Assignment total points (optional): "
-                , br [] []
+                [ numInput True Grade percentsModel.grade "Current grade (%): "
+                , numInput True PercentAsstWorth percentsModel.percentAsstWorth "Percent of grade assignment is worth (%): "
+                , numInput False AsstPoints percentsModel.asstPoints "Assignment total points (optional): "
                 ]
 
             Points pointsModel ->
-                [ numInput PointsNumerator pointsModel.pointsNumerator "Current grade (points): "
-                , numInput PointsDenominator pointsModel.pointsDenominator " / "
-                , text (" = " ++ floatToStr (getPercentsModel (mapModel strToFloat model)).grade ++ "%")
-                , br [] []
-                , numInput AsstPoints pointsModel.asstPoints "Assignment total points: "
+                -- [ divClass "row mb-0"
+                --     [ numInput PointsNumerator pointsModel.pointsNumerator "Current grade (points): "
+                --     , numInput PointsDenominator pointsModel.pointsDenominator " / "
+                --     , text (" = " ++ floatToStr (getPercentsModel (mapModel strToFloat model)).grade ++ "%")
+                --     ]
+                [ Html.span []
+                    [ label [] [ text "Current grade (points)" ]
+                    , divClass "input-group"
+                        [ input
+                            [ class "numberInput form-control"
+                            , onInput PointsNumerator
+                            , type_ "number"
+                            , value pointsModel.pointsNumerator
+                            , step "any"
+                            ]
+                            []
+                        , divClass "input-group-append" [ span [ class "input-group-text" ] [ text "/" ] ]
+                        , input
+                            [ class "numberInput form-control"
+                            , onInput PointsDenominator
+                            , type_ "number"
+                            , value pointsModel.pointsDenominator
+                            , step "any"
+                            , attribute "aria-label" "Points denominator"
+                            ]
+                            []
+                        ]
+                    ]
+                , numInput False AsstPoints pointsModel.asstPoints "Assignment total points: "
                 ]
         )
 
 
-numInput : (String -> Msg) -> String -> String -> Html Msg
-numInput changer val label =
+numInput : Bool -> (String -> Msg) -> String -> String -> Html Msg
+numInput isPercent changer val lab =
     Html.span []
-        [ text label
-        , input
-            [ class "numberInput"
-            , onInput changer
-            , type_ "number"
-            , value val
-            , step "any"
+        [ label [] [ text lab ]
+        , divClass "input-group"
+            [ input
+                [ class "numberInput form-control"
+                , onInput changer
+                , type_ "number"
+                , value val
+                , step "any"
+                ]
+                []
+            , if isPercent then
+                divClass "input-group-append" [ span [ class "input-group-text" ] [ text "%" ] ]
+
+              else
+                div [] []
             ]
-            []
         ]
+
+
+divClass c =
+    div [ class c ]
 
 
 {-| Given a model and an assignment grade, returns the new final grade
@@ -510,13 +565,23 @@ makeTableFromRows headers l =
             attribute "border"
 
         --tdth is either td or th
-        makeElem tdth s =
-            tdth [] [ text s ]
+        makeElem s =
+            td [] [ text s ]
 
-        makeRow tdth r =
-            tr [] (List.map (makeElem tdth) r)
+        makeRow r =
+            tr [] (List.map makeElem r)
+
+        body =
+            tbody [] <| List.map makeRow l
+
+        head =
+            thead [ class "thead-light" ]
+                [ tr [] <|
+                    List.map (th [ scope "col" ] << List.singleton << text) headers
+                ]
     in
-    table [ border "1" ] (makeRow th headers :: List.map (makeRow td) l)
+    table [ class "table table-striped table-sm" ]
+        [ head, body ]
 
 
 

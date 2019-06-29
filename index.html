@@ -1,23 +1,29 @@
-<!DOCTYPE HTML>
-<html>
+<!doctype html>
+<html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <title>Grades</title>
-  <!-- <link rel="stylesheet" href="whatever-you-want.css"> -->
-  <link rel="stylesheet" href="css/styles.css?v=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <script src="main.js"></script>
+  <link rel="stylesheet" href="css/styles.css?v=1.0">
+
+
 </head>
 
 <body>
   <div id="elm"></div>
-  <div id="plot" style="width:600px;height:400px;"></div>
+  <div id="plot"></div>
   <script>
     var app = Elm.Main.init({
       node: document.getElementById('elm'),
       flags: [window.location.href, window.location.href.split('?')[0]]
     });
-    
+
     const END = 120;
     const STEP = .1;
     function makeGraph(tuple) {
@@ -28,22 +34,59 @@
       }
 
       let plotDiv = document.getElementById('plot');
-      
+
       const x = new Array(END / STEP).fill(undefined).map((val, index) => index * STEP);
       const y = x.map(fun);
-      
+
       Plotly.newPlot(plotDiv, [{
         x: x,
         y: y,
         mode: 'lines'
       }], {
-        margin: { t: 0 },
-        xaxis: { title: "Assignment grade (%)", dtick: 10, showspikes: true },
-        yaxis: { title: "Total grade", dtick: 10, showspikes: true }
-      });
+          margin: { t: 0 },
+          xaxis: { title: "Assignment grade (%)", dtick: 10, showspikes: true },
+          yaxis: { title: "Total grade", dtick: 10, showspikes: true }
+        });
     }
 
     app.ports.plot.subscribe(makeGraph);
+
+    app.ports.copyToClipboard.subscribe(function (str) {
+      const el = document.createElement("textarea");
+      el.value = str;
+      el.setAttribute("readonly", "");
+      el.style.position = "absolute";
+      el.style.left = "-9999px";
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+
+      $("#copyButton").tooltip("hide").attr("data-original-title", "Copied").tooltip("show");
+
+      $("#copyButton").mouseout(function () {
+        $("#copyButton").tooltip("hide").attr("data-original-title", "Copy");
+      });
+    });
   </script>
+
+  <!-- Bootstrap -->
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+    crossorigin="anonymous"></script>
+
+  <script>
+    $(function () {
+      $('[data-toggle="tooltip"]').tooltip()
+    })
+  </script>
+
 </body>
+
 </html>
