@@ -372,7 +372,8 @@ viewTabContent model =
                             , step "any"
                             ]
                             []
-                        , divClass "input-group-append" [ span [ class "input-group-text" ] [ text "/" ] ]
+                        , divClass1 "input-group-append" <|
+                            span [ class "input-group-text" ] [ text "/" ]
                         , input
                             [ class "numberInput form-control"
                             , onInput PointsDenominator
@@ -382,6 +383,9 @@ viewTabContent model =
                             , attribute "aria-label" "Points denominator"
                             ]
                             []
+                        , divClass1 "input-group-append" <|
+                            span [ class "input-group-text" ]
+                                [ text <| "= " ++ String.fromFloat (getPercentsModel (mapModel strToFloat model)).grade ++ "%" ]
                         ]
                     ]
                 , numInput False AsstPoints pointsModel.asstPoints "Assignment total points: "
@@ -578,7 +582,7 @@ makeTableFromRows headers l =
             td [] [ text s ]
 
         makeRow r =
-            tr [] (List.map makeElem r)
+            tr [ class (colorClassOfRow r) ] (List.map makeElem r)
 
         body =
             tbody [] <| List.map makeRow l
@@ -589,8 +593,41 @@ makeTableFromRows headers l =
                     List.map (th [ scope "col" ] << List.singleton << text) headers
                 ]
     in
-    table [ class "table table-striped table-sm" ]
+    table [ class "table table-sm" ]
         [ head, body ]
+
+
+colorClassOfRow : List String -> String
+colorClassOfRow l =
+    case l of
+        [ _, _, grade ] ->
+            case String.toFloat grade of
+                Just n ->
+                    "color-" ++ colorClassOfGrade n
+
+                Nothing ->
+                    ""
+
+        _ ->
+            ""
+
+
+colorClassOfGrade : Float -> String
+colorClassOfGrade n =
+    if n < 60 then
+        "f"
+
+    else if n < 70 then
+        "d"
+
+    else if n < 80 then
+        "c"
+
+    else if n < 90 then
+        "b"
+
+    else
+        "a"
 
 
 
