@@ -12,11 +12,11 @@ percent =
 
 
 percentsToPoints =
-    Percents >> Model "" >> getPointsModel
+    Percents >> Model "" False >> getPointsModel
 
 
 pointsToPercents =
-    Points >> Model "" >> getPercentsModel
+    Points >> Model "" False >> getPercentsModel
 
 
 close =
@@ -74,7 +74,7 @@ suite =
                 \( ( pointsNumerator, pointsDenominator, asstPoints ), num ) ->
                     let
                         model =
-                            Model "" <| Points <| PointsModel pointsNumerator pointsDenominator asstPoints
+                            Model "" False <| Points <| PointsModel pointsNumerator pointsDenominator asstPoints
                     in
                     num
                         |> finalGrade model
@@ -84,7 +84,7 @@ suite =
                 \_ ->
                     let
                         model =
-                            Model "" <| Percents <| PercentsModel 100 50 1000
+                            Model "" False <| Percents <| PercentsModel 100 50 1000
                     in
                     25
                         |> finalGrade model

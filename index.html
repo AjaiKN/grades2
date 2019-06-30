@@ -12,7 +12,7 @@
   <script src="main.js"></script>
   <link rel="stylesheet" href="css/styles.css?v=1.0">
 
-
+  <script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
 </head>
 
 <body>
@@ -36,9 +36,13 @@
   <div id="elm"></div>
   <div id="plot"></div>
   <script>
+
+    const touch = (true == ("ontouchstart" in window || window.DocumentTouch && document instanceof DocumentTouch));
+    const isTouchDevice = touch ? true : false;
+
     var app = Elm.Main.init({
       node: document.getElementById('elm'),
-      flags: [window.location.href, window.location.href.split('?')[0]]
+      flags: [window.location.href, window.location.href.split('?')[0], isTouchDevice]
     });
 
     const END = 120;
@@ -68,23 +72,7 @@
 
     app.ports.plot.subscribe(makeGraph);
 
-    app.ports.copyToClipboard.subscribe(function (str) {
-      const el = document.createElement("textarea");
-      el.value = str;
-      el.setAttribute("readonly", "");
-      el.style.position = "absolute";
-      el.style.left = "-9999px";
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
 
-      $("#copyButton").tooltip("hide").attr("data-original-title", "Copied").tooltip("show");
-
-      $("#copyButton").mouseout(function () {
-        $("#copyButton").tooltip("hide").attr("data-original-title", "Copy");
-      });
-    });
   </script>
 
   <!-- Bootstrap -->
@@ -102,6 +90,18 @@
     $(function () {
       $('[data-toggle="tooltip"]').tooltip()
     })
+
+    const clipboard = new ClipboardJS('#copyButton');
+
+    if (!isTouchDevice) {
+      clipboard.on("success", function (e) {
+        $("#copyButton").tooltip("hide").attr("data-original-title", "Copied").tooltip("show");
+        $("#copyButton").mouseout(function () {
+          $("#copyButton").tooltip("hide").attr("data-original-title", "Copy");
+        });
+      });
+    }
+
   </script>
 
 </body>

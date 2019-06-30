@@ -15,9 +15,6 @@ port plot :
     -> Cmd msg
 
 
-port copyToClipboard : String -> Cmd msg
-
-
 
 -- MAIN
 
@@ -38,6 +35,7 @@ main =
 type alias Model t =
     --t is either String or Float
     { baseUrl : String
+    , isTouchDevice : Bool
     , tab : Tab t
     }
 
@@ -61,14 +59,15 @@ type alias PointsModel t =
     }
 
 
-init : ( String, String ) -> ( Model String, Cmd Msg )
-init ( url, urlWithoutQuery ) =
+init : ( String, String, Bool ) -> ( Model String, Cmd Msg )
+init ( url, urlWithoutQuery, isTouchDevice ) =
     let
         defaultModel =
             mapModel
                 floatToStr
                 { tab = Percents { grade = 88, percentAsstWorth = 25, asstPoints = 100 }
                 , baseUrl = urlWithoutQuery
+                , isTouchDevice = isTouchDevice
                 }
 
         mod =
@@ -139,15 +138,17 @@ getPageLink model =
 
 
 mapModel : (a -> b) -> Model a -> Model b
-mapModel f { baseUrl, tab } =
+mapModel f { baseUrl, tab, isTouchDevice } =
     case tab of
         Percents mod ->
             { baseUrl = baseUrl
+            , isTouchDevice = isTouchDevice
             , tab = Percents (mapPercentsModel f mod)
             }
 
         Points mod ->
             { baseUrl = baseUrl
+            , isTouchDevice = isTouchDevice
             , tab = Points (mapPointsModel f mod)
             }
 
@@ -183,8 +184,7 @@ floatToStr =
 
 
 type Msg
-    = CopyToClipboard
-    | Grade String
+    = Grade String
     | PercentAsstWorth String
     | AsstPoints String
     | PointsNumerator String
@@ -196,28 +196,23 @@ type Msg
 
 update : Msg -> Model String -> ( Model String, Cmd Msg )
 update msg model =
-    case msg of
-        CopyToClipboard ->
-            ( model, copyToClipboard (getPageUrl model) )
+    let
+        newModel : Model String
+        newModel =
+            case model.tab of
+                Percents mod ->
+                    { model | tab = updatePercents msg mod }
 
-        _ ->
-            let
-                newModel : Model String
-                newModel =
-                    case model.tab of
-                        Percents mod ->
-                            { model | tab = updatePercents msg mod }
+                Points mod ->
+                    { model | tab = updatePoints msg mod }
 
-                        Points mod ->
-                            { model | tab = updatePoints msg mod }
-
-                percentsModel : PercentsModel Float
-                percentsModel =
-                    newModel |> mapModel strToFloat |> getPercentsModel
-            in
-            ( newModel
-            , plot ( percentsModel.grade, percentsModel.percentAsstWorth )
-            )
+        percentsModel : PercentsModel Float
+        percentsModel =
+            newModel |> mapModel strToFloat |> getPercentsModel
+    in
+    ( newModel
+    , plot ( percentsModel.grade, percentsModel.percentAsstWorth )
+    )
 
 
 updatePercents :
@@ -238,10 +233,10 @@ updatePercents msg model =
         TabSwitchPoints ->
             mapPercentsModel strToFloat model
                 |> Percents
-                |> Model ""
+                |> Model "" False
                 |> getPointsModel
                 |> Points
-                |> Model ""
+                |> Model "" False
                 |> mapModel floatToStr
                 |> .tab
 
@@ -264,10 +259,10 @@ updatePoints msg model =
         TabSwitchPercents ->
             mapPointsModel strToFloat model
                 |> Points
-                |> Model ""
+                |> Model "" False
                 |> getPercentsModel
                 |> Percents
-                |> Model ""
+                |> Model "" False
                 |> mapModel floatToStr
                 |> .tab
 
@@ -287,10 +282,15 @@ view model =
                 [ type_ "button"
                 , class "btn btn-primary"
                 , id "copyButton"
-                , onClick CopyToClipboard
                 , attribute "data-toggle" "tooltip"
                 , attribute "data-placement" "bottom"
-                , attribute "title" "Copy"
+                , attribute "title" <|
+                    if model.isTouchDevice then
+                        "Copied"
+
+                    else
+                        "Copy"
+                , attribute "data-clipboard-text" (getPageUrl model)
                 ]
                 [ text "Copy link to this calculation" ]
         , centeredRow <|
@@ -305,6 +305,7 @@ view model =
         ]
 
 
+centeredRow : Html msg -> Html msg
 centeredRow =
     divClass1 "row justify-content-center"
         << divClass1 "col-lg-6"
