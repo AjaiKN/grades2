@@ -3,6 +3,8 @@ module MainTest exposing (suite)
 import Expect exposing (Expectation, FloatingPointTolerance(..))
 import Fuzz exposing (Fuzzer, float, floatRange, int, list, string, tuple, tuple3)
 import Main exposing (..)
+import Percents
+import Points
 import Round
 import Test exposing (..)
 
@@ -11,16 +13,12 @@ percent =
     floatRange 0.1 99.9
 
 
-percentsToPoints =
-    Percents >> Model "" False >> getPointsModel
-
-
-pointsToPercents =
-    Points >> Model "" False >> getPercentsModel
-
-
 close =
     Expect.within (Absolute 0.001)
+
+
+makeBasicModel =
+    Model "" False
 
 
 expectSamePercentsModel other =
@@ -47,34 +45,34 @@ suite =
                 \( grade, percentAsstWorth, asstPoints ) ->
                     let
                         percentModel =
-                            PercentsModel grade percentAsstWorth asstPoints
+                            Percents.Model grade percentAsstWorth asstPoints
                     in
                     percentModel
-                        |> percentsToPoints
-                        |> pointsToPercents
+                        |> Percents.toPoints
+                        |> Points.toPercents
                         |> expectSamePercentsModel percentModel
             , fuzz (tuple3 ( percent, percent, percent )) "Points to Percents and back" <|
                 \( pointsNumerator, pointsDenominator, asstPoints ) ->
                     let
                         pointModel =
-                            PointsModel pointsNumerator pointsDenominator asstPoints
+                            Points.Model pointsNumerator pointsDenominator asstPoints
                     in
                     pointModel
-                        |> pointsToPercents
-                        |> percentsToPoints
+                        |> Points.toPercents
+                        |> Percents.toPoints
                         |> expectSamePointsModel pointModel
             , test "basic example" <|
                 \_ ->
-                    PointsModel 2 3 1
-                        |> pointsToPercents
-                        |> expectSamePercentsModel (PercentsModel 66.6666666666 25 1)
+                    Points.Model 2 3 1
+                        |> Points.toPercents
+                        |> expectSamePercentsModel (Percents.Model 66.6666666666 25 1)
             ]
         , describe "finalGrade and assignmentGradeNeeded"
             [ fuzz (tuple ( tuple3 ( percent, percent, percent ), percent )) "are inverse functions" <|
                 \( ( pointsNumerator, pointsDenominator, asstPoints ), num ) ->
                     let
                         model =
-                            Model "" False <| Points <| PointsModel pointsNumerator pointsDenominator asstPoints
+                            makeBasicModel <| PointsTab <| Points.Model pointsNumerator pointsDenominator asstPoints
                     in
                     num
                         |> finalGrade model
@@ -84,7 +82,7 @@ suite =
                 \_ ->
                     let
                         model =
-                            Model "" False <| Percents <| PercentsModel 100 50 1000
+                            makeBasicModel <| PercentsTab <| Percents.Model 100 50 1000
                     in
                     25
                         |> finalGrade model
