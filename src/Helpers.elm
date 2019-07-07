@@ -1,4 +1,7 @@
-module HtmlHelpers exposing (divClass, divClass1, floatToStr, numInput, strToFloat)
+module Helpers exposing (divClass, divClass1, floatToStr, numInput, strToFloat)
+
+{-| Helper functions needed in other modules.
+-}
 
 import Html exposing (Html, div, input, label, span, text)
 import Html.Attributes exposing (class, step, type_, value)

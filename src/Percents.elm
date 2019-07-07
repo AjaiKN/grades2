@@ -1,7 +1,10 @@
 module Percents exposing (Model, Msg, map, toPoints, update, view)
 
+{-| Model, update, and view for the input of the Percents tab.
+-}
+
+import Helpers exposing (divClass, numInput)
 import Html exposing (Html)
-import HtmlHelpers exposing (divClass, numInput)
 
 
 

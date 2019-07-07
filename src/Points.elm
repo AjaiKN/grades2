@@ -1,9 +1,12 @@
 module Points exposing (Model, Msg, map, toPercents, update, view)
 
+{-| Model, update, and view for the input of the Points tab.
+-}
+
+import Helpers exposing (divClass, divClass1, floatToStr, numInput, strToFloat)
 import Html exposing (Html, input, label, span, text)
 import Html.Attributes exposing (attribute, class, step, type_, value)
 import Html.Events exposing (onInput)
-import HtmlHelpers exposing (divClass, divClass1, floatToStr, numInput, strToFloat)
 
 
 
