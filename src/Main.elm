@@ -147,7 +147,6 @@ type Msg
     | PointsMsg Points.Msg
     | TabSwitchPercents
     | TabSwitchPoints
-    | DoNothing
 
 
 update : Msg -> Model String -> ( Model String, Cmd Msg )
@@ -179,9 +178,6 @@ update msg model =
                                 |> Percents.map floatToStr
                                 |> PercentsTab
                     }
-
-                ( _, DoNothing ) ->
-                    model
 
                 ( _, _ ) ->
                     model
