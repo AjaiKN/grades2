@@ -90,7 +90,6 @@ view model =
                     []
                 , divClass1 "input-group-append" <|
                     span [ class "input-group-text" ]
-                        -- TODO
                         [ text <| "= " ++ floatToStr (toPercents (map strToFloat model)).grade ++ "%" ]
                 ]
             ]

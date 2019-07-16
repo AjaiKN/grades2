@@ -2,13 +2,12 @@ port module Main exposing (Model, Msg(..), Tab(..), assignmentGradeNeeded, final
 
 import Browser
 import Helpers exposing (divClass, divClass1, floatToStr, strToFloat)
-import Html exposing (Attribute, Html, a, br, button, div, input, label, nav, span, table, tbody, td, text, th, thead, tr)
-import Html.Attributes exposing (attribute, class, href, id, scope, step, style, type_, value)
-import Html.Events exposing (onClick, onInput)
+import Html exposing (Html, a, button, div, nav, table, tbody, td, text, th, thead, tr)
+import Html.Attributes exposing (attribute, class, href, id, scope, type_)
+import Html.Events exposing (onClick)
 import Percents
 import Points
 import Regex
-import Round
 
 
 {-| A port to a JavaScript function (in index.html) that makes the plot
@@ -29,7 +28,7 @@ main =
     Browser.element
         { init = init
         , update = update
-        , subscriptions = subscriptions
+        , subscriptions = always Sub.none
         , view = view
         }
 
@@ -389,7 +388,7 @@ table2 model =
         --filter out assignments grades < 0
         ( finalAsstGrades, finalTotalGrades ) =
             List.map2 Tuple.pair asstGrades totalGrades
-                |> List.filter (\( asst, total ) -> asst >= 0 && asst < 140)
+                |> List.filter (\( asst, _ ) -> asst >= 0 && asst < 140)
                 |> List.unzip
 
         cols =
@@ -448,10 +447,6 @@ transpose ll =
 makeTableFromRows : List String -> List (List String) -> Html msg
 makeTableFromRows headers l =
     let
-        border : String -> Attribute msg
-        border =
-            attribute "border"
-
         --tdth is either td or th
         makeElem s =
             td [] [ text s ]
@@ -506,12 +501,3 @@ colorClassOfGrade n =
 
     else
         "a"
-
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model String -> Sub Msg
-subscriptions model =
-    Sub.none
