@@ -114,19 +114,24 @@ getModelFromUrl : String -> Maybe (Tab String)
 getModelFromUrl str =
     case getSubmatches ".*\\?type=percent&grade=(.*)&percentAsstWorth=(.*)&asstPoints=(.*)" str of
         Just [ a, b, c ] ->
-            Percents.Model a b c
+            Percents.Model (ensureStringIsNum a) (ensureStringIsNum b) (ensureStringIsNum c)
                 |> PercentsTab
                 |> Just
 
         _ ->
             case getSubmatches ".*\\?type=point&numerator=(.*)&denominator=(.*)&asstPoints=(.*)" str of
                 Just [ a, b, c ] ->
-                    Points.Model a b c
+                    Points.Model (ensureStringIsNum a) (ensureStringIsNum b) (ensureStringIsNum c)
                         |> PointsTab
                         |> Just
 
                 _ ->
                     Nothing
+
+
+ensureStringIsNum : String -> String
+ensureStringIsNum =
+    String.toFloat >> Maybe.withDefault 0 >> String.fromFloat
 
 
 {-| Get all the submatches of a regex in a String.
