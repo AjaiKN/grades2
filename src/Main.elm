@@ -90,7 +90,7 @@ init ( url, urlWithoutQuery, isTouchDevice ) =
         defaultModel =
             mapModel
                 floatToStr
-                { tab = PercentsTab { grade = 88, percentAsstWorth = 25, asstPoints = 100 }
+                { tab = PercentsTab { grade = 88, percentAsstWorth = 20, asstPoints = 100 }
                 , baseUrl = urlWithoutQuery
                 , isTouchDevice = isTouchDevice
                 }
